@@ -45,17 +45,20 @@ function createProduct(req, res) {
 function updateProduct(req, res) {
   const { _id } = req.body;
 
-  const newProduct = PRODUCTS.find((product) => {
+  const productIndex = PRODUCTS.findIndex((product) => {
     return product._id === _id;
   });
 
-  if (!newProduct) {
-    return req.status(404), json({ message: "Product not found" });
+  if (productIndex === -1) {
+    return res.status(404).json({ message: "Product not found" });
   }
-  const products = [...PRODUCTS, req.body];
+
+  const products = [...PRODUCTS];
+  products[productIndex] = req.body;
   fs.writeFileSync("./data/data.json", JSON.stringify(products));
   res.status(200).json({ message: "Product updated" });
 }
+
 module.exports = {
   getProducts,
   getProductById,
