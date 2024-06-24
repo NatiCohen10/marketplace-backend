@@ -1,65 +1,132 @@
-const fs = require("fs");
-const PRODUCTS = require("../data/data.json");
-const { json } = require("express");
+const { buildCriteria } = require("../helper/buildCriteria");
+const Product = require("../models/products.model");
 
-function getProducts(req, res) {
-  res.status(200).json(PRODUCTS);
+async function getProductsCount(req, res) {
+  const { query } = req;
+  const criteria = buildCriteria(query);
+  try {
+    const count = await Product.countDocuments(criteria);
+    res.json({ count });
+  } catch (error) {
+    console.log(
+      "product.contoller, getProductsCount. Error while getting products count",
+      error
+    );
+    res.status(500).json({ message: error.message });
+  }
 }
 
-function getProductById(req, res) {
+async function getProducts(req, res) {
+  const { query } = req;
+  const criteria = buildCriteria(query);
+  const page = parseInt(query.page, 10) || 1;
+  const limit = 5;
+  const skip = (page - 1) * limit;
+  try {
+    const products = await Product.find(criteria).skip(skip).limit(limit);
+    res.json({ products, limit, currentPage: page });
+  } catch (error) {
+    console.log(
+      "product.controller, getProducts. Error while getting products",
+      error
+    );
+    res.status(500).json({ message: error.message });
+  }
+}
+
+async function getProductById(req, res) {
   const { id } = req.params;
 
-  const product = PRODUCTS.find((product) => {
-    return product._id === id;
-  });
-
-  if (!product) {
-    return res.status(404).json({ message: "product not found" });
+  try {
+    const product = await Product.findById(id);
+    res.json(product);
+  } catch (error) {
+    if (error.name === "CastError") {
+      console.log(
+        `product.controller, getProductById. Product not found with id: ${id}`
+      );
+      return res.status(404).json({ message: "robot not found" });
+    }
+    console.log(
+      `product.controller, getProductById. Error while getting product with id: ${id}`,
+      error.name
+    );
+    res.status(500).json({ message: error.message });
   }
-
-  res.status(200).json(product);
 }
 
-function deleteProduct(req, res) {
+async function deleteProduct(req, res) {
   const { id } = req.params;
 
-  const products = [...PRODUCTS];
-  const productIndex = products.findIndex((product) => {
-    return product._id === id;
-  });
+  try {
+    const deletedProduct = await Product.findByIdAndDelete(id);
 
-  if (productIndex === -1) {
-    return res.status(404).json({ message: "product not found" });
+    if (!deletedProduct) {
+      console.log(
+        `product.controller, deleteProduct. Product not found with id: ${id}`
+      );
+      return res.status(404).json({ message: "Product not found" });
+    }
+    res.json({ message: "Product deleted" });
+  } catch (error) {
+    console.log(
+      `product.controller, deleteProduct. Error while deleting product with id: ${id}`
+    );
+    res.status(500).json({ message: error.message });
   }
-  products.splice(productIndex, 1);
-  fs.writeFileSync("./data/data.json", JSON.stringify(products));
-  res.status(200).json({ message: "Product deleted" });
 }
 
-function createProduct(req, res) {
-  const products = [...PRODUCTS, req.body];
-  fs.writeFileSync("./data/data.json", JSON.stringify(products));
-  res.status(201).json({ message: "Product added" });
+async function createProduct(req, res) {
+  const productToAdd = req.body;
+  const newProduct = new Product(productToAdd);
+
+  try {
+    const savedProduct = await newProduct.save();
+    res.status(201).json(savedProduct);
+  } catch (error) {
+    console.log(
+      "product.controller, getProducts. Error while getting products",
+      error
+    );
+
+    if (error.name === "ValidationError") {
+      console.log(`product controller, createProduct. ${error.message}`);
+      res.status(400).json({ message: error.message });
+    } else {
+      console.log(`product controller, createProduct. ${error.message}`);
+      res.status(500), json({ message: "server error while creating robot" });
+    }
+  }
 }
 
-function updateProduct(req, res) {
-  const { _id } = req.body;
+async function updateProduct(req, res) {
+  const { id } = req.body;
 
-  const productIndex = PRODUCTS.findIndex((product) => {
-    return product._id === _id;
-  });
+  try {
+    const updatedProduct = await Product.findByIdAndUpdate(id, req.body, {
+      new: true,
+      runValidators: true,
+    });
 
-  if (productIndex === -1) {
-    return res.status(404).json({ message: "Product not found" });
+    res.json(updatedProduct);
+  } catch (error) {
+    console.log(
+      "product.controller, getProducts. Error while getting products",
+      error
+    );
+
+    if (error.name === "ValidationError") {
+      console.log(`product controller, createProduct. ${error.message}`);
+      res.status(400).json({ message: error.message });
+    } else {
+      console.log(`product controller, createProduct. ${error.message}`);
+      res.status(500), json({ message: "server error while creating robot" });
+    }
   }
-
-  const products = [...PRODUCTS];
-  products[productIndex] = req.body;
-  fs.writeFileSync("./data/data.json", JSON.stringify(products));
-  res.status(200).json({ message: "Product updated" });
 }
 
 module.exports = {
+  getProductsCount,
   getProducts,
   getProductById,
   deleteProduct,
