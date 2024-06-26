@@ -4,19 +4,21 @@ function buildCriteria(query) {
     result.name = { $regex: query.name, $options: "i" };
   }
 
-  if (query.minPrice || query.maxPrice) {
-    result.price = {};
-    if (query.minPrice) {
-      const minPrice = parseFloat(query.minPrice);
-      if (!isNaN(minPrice)) {
-        result.price.$gte = minPrice;
+  if (query.price) {
+    const priceRange = query.price.split("-");
+    if (priceRange.length === 2) {
+      const minPrice = parseFloat(priceRange[0]);
+      const maxPrice = parseFloat(priceRange[1]);
+
+      if (!isNaN(minPrice) && !isNaN(maxPrice) && minPrice <= maxPrice) {
+        result.price = { $gte: minPrice, $lte: maxPrice };
+      } else {
+        console.log(
+          "Invalid price range: minPrice should be less than or equal to maxPrice"
+        );
       }
-    }
-    if (query.maxPrice) {
-      const maxPrice = parseFloat(query.maxPrice);
-      if (!isNaN(maxPrice)) {
-        result.price.$lte = maxPrice;
-      }
+    } else {
+      console.log("Price range must be in the format 'minPrice-maxPrice'");
     }
   }
 
@@ -27,7 +29,22 @@ function buildCriteria(query) {
     }
   }
 
+  if (query.category) {
+    const categories = query.category.split(",");
+    const capitalizedCategories = categories.map((productCat) =>
+      capitalize(productCat.trim())
+    );
+    const validateCategories = capitalizedCategories.filter(
+      (category) => typeof category === "string" && category.trim() !== ""
+    );
+
+    result.category = { $in: validateCategories };
+  }
   return result;
+}
+
+function capitalize(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 module.exports = { buildCriteria };

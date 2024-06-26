@@ -21,12 +21,11 @@ async function getProducts(req, res) {
   const criteria = buildCriteria(query);
   let page = parseInt(query.page) || 1;
   if (page < 1) page = 1;
-  const limit = 5;
+  const limit = parseInt(req.query.limit) || 5;
   const skip = (page - 1) * limit;
   try {
     const products = await Product.find(criteria).skip(skip).limit(limit);
-    console.log("activated");
-    res.json({ products, limit, currentPage: page });
+    res.json({ products, limit });
   } catch (error) {
     console.log(
       "product.controller, getProducts. Error while getting products",
