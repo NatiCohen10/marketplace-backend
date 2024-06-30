@@ -18,6 +18,7 @@ async function getProductsCount(req, res) {
 
 async function getProducts(req, res) {
   const { query } = req;
+  console.log(query);
   const criteria = buildCriteria(query);
   let page = parseInt(query.page) || 1;
   if (page < 1) page = 1;
