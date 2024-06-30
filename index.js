@@ -25,7 +25,12 @@ async function main() {
 
   // Routes
   const productRoutes = require("./routes/products.route");
+  const authRoutes = require("./routes/auth.routes");
+  const userRoutes = require("./routes/user.routes");
+
   app.use("/api/products", productRoutes);
+  app.use("/api/auth", authRoutes);
+  app.use("/api/users", userRoutes);
 
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
