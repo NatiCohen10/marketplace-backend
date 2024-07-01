@@ -1,5 +1,6 @@
 const { buildCriteria } = require("../helper/buildCriteria");
 const Product = require("../models/products.model");
+const User = require("../models/users.model");
 
 async function getProductsCount(req, res) {
   const { query } = req;
@@ -18,7 +19,6 @@ async function getProductsCount(req, res) {
 
 async function getProducts(req, res) {
   const { query } = req;
-  console.log(query);
   const criteria = buildCriteria(query);
   let page = parseInt(query.page) || 1;
   if (page < 1) page = 1;
@@ -38,9 +38,11 @@ async function getProducts(req, res) {
 
 async function getProductById(req, res) {
   const { id } = req.params;
+  console.log(id);
 
   try {
     const product = await Product.findById(id);
+
     res.json(product);
   } catch (error) {
     if (error.name === "CastError") {
@@ -79,12 +81,24 @@ async function deleteProduct(req, res) {
 }
 
 async function createProduct(req, res) {
-  const productToAdd = req.body;
-  const newProduct = new Product(productToAdd);
+  const { name, price, quantity, categories } = req.body;
 
   try {
+    const userId = req.userId;
+    const productToAdd = {
+      name,
+      price,
+      quantity,
+      categories,
+      user: userId,
+    };
+    const newProduct = new Product(productToAdd);
     const savedProduct = await newProduct.save();
-    res.status(201).json(savedProduct);
+    const userAdded = await User.findByIdAndUpdate(userId, {
+      $push: { products: savedProduct._id },
+    });
+    const { password, ...userAddedWithoutPassword } = userAdded._doc;
+    res.status(201).json({ savedProduct, userAddedWithoutPassword });
   } catch (error) {
     console.log(
       "product.controller, getProducts. Error while getting products",

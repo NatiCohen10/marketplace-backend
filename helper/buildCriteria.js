@@ -38,8 +38,9 @@ function buildCriteria(query) {
       (category) => typeof category === "string" && category.trim() !== ""
     );
 
-    result.category = { $in: validateCategories };
+    result.categories = { $in: validateCategories };
   }
+  console.log(result);
   return result;
 }
 

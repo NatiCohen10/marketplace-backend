@@ -4,7 +4,7 @@ async function getUserById(req, res) {
   const { userId } = req.params;
 
   try {
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).populate("products");
     if (!user) return res.status(404).json({ message: "User not found" });
     const { password, ...userWithoutPassword } = user._doc;
 
